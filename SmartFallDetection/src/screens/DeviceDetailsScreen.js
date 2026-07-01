@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Linking, Platform, ScrollView, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Linking, Platform, ScrollView, Dimensions, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import MapView, { Marker } from 'react-native-maps';
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -82,8 +84,8 @@ export default function DeviceDetailsScreen({ route }) {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text>Se încarcă datele hărții...</Text>
+        <ActivityIndicator size="large" color="#2563EB" />
+        <Text style={styles.loadingText}>Se încarcă datele hărții...</Text>
       </View>
     );
   }
@@ -113,164 +115,254 @@ export default function DeviceDetailsScreen({ route }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.infoBox}>
-        <Text style={styles.title}>Stare Dispozitiv: {deviceId}</Text>
-        <Text style={[styles.statusText, { color: isEmergency ? '#d9534f' : '#5cb85c' }]}>
-          {latestAlert 
-            ? (isEmergency ? `⚠️ Ultima cădere detectată la: \n${dataFormatata}` : `✅ Ultima locație sigură actualizată la: \n${dataFormatata}`) 
-            : 'Sistemul nu are date GPS'}
-        </Text>
-      </View>
-
-      {latestAlert ? (
-        <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: latestAlert.latitude,
-              longitude: latestAlert.longitude,
-              latitudeDelta: 0.005,
-              longitudeDelta: 0.005,
-            }}
-          >
-            <Marker
-              coordinate={{ latitude: latestAlert.latitude, longitude: latestAlert.longitude }}
-              title={isEmergency ? "Locație Cădere Urgență" : "Ultima Locație Cunoscută"}
-              description={isEmergency ? `Urgență: ${dataFormatata}` : `Actualizat: ${dataFormatata}`}
-              pinColor={isEmergency ? "red" : "blue"}
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.infoBox}>
+          <View style={styles.titleRow}>
+            <Ionicons name="hardware-chip-outline" size={18} color="#2563EB" />
+            <Text style={styles.title} numberOfLines={1}>Stare Dispozitiv: {deviceId}</Text>
+          </View>
+          <View style={[styles.statusPill, { backgroundColor: isEmergency ? '#FEF2F2' : '#ECFDF5' }]}>
+            <Ionicons
+              name={isEmergency ? 'warning' : 'checkmark-circle'}
+              size={16}
+              color={isEmergency ? '#EF4444' : '#059669'}
+              style={{ marginRight: 6, marginTop: 1 }}
             />
-          </MapView>
-          
-          <TouchableOpacity 
-            style={[styles.navigateButton, { backgroundColor: isEmergency ? '#d9534f' : '#007AFF' }]}
-            onPress={openNavigation}
-          >
-            <Text style={styles.navigateButtonText}>
-              {isEmergency ? "🚨 Navighează spre Urgență" : "🚗 Navighează către dispozitiv"}
+            <Text style={[styles.statusText, { color: isEmergency ? '#EF4444' : '#059669' }]}>
+              {latestAlert 
+                ? (isEmergency ? `Ultima cădere detectată la:\n${dataFormatata}` : `Ultima locație sigură actualizată la:\n${dataFormatata}`) 
+                : 'Sistemul nu are date GPS'}
             </Text>
-          </TouchableOpacity>
+          </View>
         </View>
-      ) : (
-        <View style={styles.noMapBox}>
-          <Text style={styles.noMapText}>Nu există coordonate de afișat.</Text>
-        </View>
-      )}
 
-      {hasTelemetry && (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Pași în ultimele 7 zile</Text>
-          <BarChart
-            data={stepsData} 
-            width={Dimensions.get("window").width - 30}
-            height={220}
-            yAxisLabel=""
-            yAxisSuffix=""
-            chartConfig={{
-              backgroundColor: "#ffffff",
-              backgroundGradientFrom: "#ffffff",
-              backgroundGradientTo: "#ffffff",
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(0, 122, 255, ${opacity})`, 
-              labelColor: (opacity = 1) => `rgba(100, 100, 100, ${opacity})`,
-              style: { borderRadius: 16 },
-              barPercentage: 0.7,
-            }}
-            style={{ marginVertical: 8, borderRadius: 16 }}
-            showValuesOnTopOfBars={true}
-          />
-        </View>
-      )}
+        {latestAlert ? (
+          <View style={styles.mapContainer}>
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: latestAlert.latitude,
+                longitude: latestAlert.longitude,
+                latitudeDelta: 0.005,
+                longitudeDelta: 0.005,
+              }}
+            >
+              <Marker
+                coordinate={{ latitude: latestAlert.latitude, longitude: latestAlert.longitude }}
+                title={isEmergency ? "Locație Cădere Urgență" : "Ultima Locație Cunoscută"}
+                description={isEmergency ? `Urgență: ${dataFormatata}` : `Actualizat: ${dataFormatata}`}
+                pinColor={isEmergency ? "red" : "blue"}
+              />
+            </MapView>
+            
+            <TouchableOpacity 
+              style={[styles.navigateButton, { backgroundColor: isEmergency ? '#EF4444' : '#2563EB' }]}
+              onPress={openNavigation}
+              activeOpacity={0.85}
+            >
+              <Ionicons
+                name={isEmergency ? 'alert-circle' : 'navigate'}
+                size={20}
+                color="#fff"
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.navigateButtonText}>
+                {isEmergency ? "Navighează spre Urgență" : "Navighează către dispozitiv"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.noMapBox}>
+            <Ionicons name="location-outline" size={40} color="#94A3B8" />
+            <Text style={styles.noMapText}>Nu există coordonate de afișat.</Text>
+          </View>
+        )}
 
-      {hasTelemetry && (
-        <View style={styles.chartContainer}>
-          <Text style={styles.chartTitle}>Minute de Activitate</Text>
-          <BarChart
-            data={activityData} 
-            width={Dimensions.get("window").width - 30}
-            height={220}
-            yAxisLabel=""
-            yAxisSuffix=""
-            chartConfig={{
-              backgroundColor: "#ffffff",
-              backgroundGradientFrom: "#ffffff",
-              backgroundGradientTo: "#ffffff",
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(255, 149, 0, ${opacity})`, 
-              labelColor: (opacity = 1) => `rgba(100, 100, 100, ${opacity})`,
-              style: { borderRadius: 16 },
-              barPercentage: 0.7,
-            }}
-            style={{ marginVertical: 8, borderRadius: 16 }}
-            showValuesOnTopOfBars={true}
-          />
-        </View>
-      )}
+        {hasTelemetry && (
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <Ionicons name="footsteps-outline" size={18} color="#2563EB" />
+              <Text style={styles.chartTitle}>Pași în ultimele 7 zile</Text>
+            </View>
+            <BarChart
+              data={stepsData} 
+              width={Dimensions.get("window").width - 30}
+              height={220}
+              yAxisLabel=""
+              yAxisSuffix=""
+              chartConfig={{
+                backgroundColor: "#ffffff",
+                backgroundGradientFrom: "#ffffff",
+                backgroundGradientTo: "#ffffff",
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(37, 99, 235, ${opacity})`, 
+                labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                style: { borderRadius: 16 },
+                barPercentage: 0.7,
+              }}
+              style={{ marginVertical: 8, borderRadius: 16 }}
+              showValuesOnTopOfBars={true}
+            />
+          </View>
+        )}
 
-    </ScrollView>
+        {hasTelemetry && (
+          <View style={styles.chartContainer}>
+            <View style={styles.chartHeader}>
+              <Ionicons name="time-outline" size={18} color="#10B981" />
+              <Text style={styles.chartTitle}>Minute de Activitate</Text>
+            </View>
+            <BarChart
+              data={activityData} 
+              width={Dimensions.get("window").width - 30}
+              height={220}
+              yAxisLabel=""
+              yAxisSuffix=""
+              chartConfig={{
+                backgroundColor: "#ffffff",
+                backgroundGradientFrom: "#ffffff",
+                backgroundGradientTo: "#ffffff",
+                decimalPlaces: 0,
+                color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`, 
+                labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                style: { borderRadius: 16 },
+                barPercentage: 0.7,
+              }}
+              style={{ marginVertical: 8, borderRadius: 16 }}
+              showValuesOnTopOfBars={true}
+            />
+          </View>
+        )}
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  infoBox: { padding: 20, backgroundColor: '#f8f9fa', borderBottomWidth: 1, borderColor: '#eee' },
-  title: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  statusText: { fontSize: 15, marginTop: 8, fontWeight: 'bold' },
-  noMapBox: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 },
-  noMapText: { textAlign: 'center', color: 'gray', fontSize: 16 },
+  safeArea: { flex: 1, backgroundColor: '#F8FAFC' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
+  loadingText: { marginTop: 12, color: '#6B7280', fontSize: 14 },
+
+  infoBox: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    marginTop: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginLeft: 8,
+    flex: 1,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 12,
+    borderRadius: 10,
+  },
+  statusText: {
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+    lineHeight: 19,
+  },
+  noMapBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 40,
+    marginTop: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    borderStyle: 'dashed',
+  },
+  noMapText: {
+    textAlign: 'center',
+    color: '#94A3B8',
+    fontSize: 14,
+    marginTop: 8,
+  },
   mapContainer: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 20, 
+    marginTop: 16,
   },
   map: {
     width: '100%',
-    height: 400, 
-    borderRadius: 15, 
+    height: 240,
+    borderRadius: 16,
   },
-navigateButton: {
-    width: '100%', 
-    padding: 18,
-    marginTop: 20, 
-    borderRadius: 10,
+  navigateButton: {
+    flexDirection: 'row',
+    width: '100%',
+    padding: 15,
+    marginTop: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowRadius: 8,
+    elevation: 3,
   },
   navigateButtonText: {
     color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   scrollContainer: {
-    flexGrow: 1, 
-    paddingBottom: 40, 
-    paddingHorizontal: 15, 
+    flexGrow: 1,
+    paddingBottom: 40,
+    paddingHorizontal: 15,
   },
   chartContainer: {
     width: '100%',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     paddingVertical: 15,
-    marginTop: 20,
-    elevation: 3, 
-    shadowColor: '#000', 
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  chartTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 10,
+  chartHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
     marginLeft: 15,
+    marginBottom: 10,
+    gap: 8,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginLeft: 6,
   },
 });
